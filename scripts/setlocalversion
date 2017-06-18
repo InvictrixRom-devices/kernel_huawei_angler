@@ -184,7 +184,10 @@ else
 	# LOCALVERSION= is not specified
 	if test "${LOCALVERSION+set}" != "set"; then
 		scm=$(scm_version --short)
+<<<<<<< HEAD
 		res="$res"
+=======
+>>>>>>> 6d802fb... Initial compilation setup
 	fi
 fi
 
