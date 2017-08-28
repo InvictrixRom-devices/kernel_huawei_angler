@@ -1,10 +1,8 @@
-###############
-#             #
-# FLASH SETUP #
-#             #
-###############
-
-CONFIG_LOCALVERSION="-Flash-Angler"
+# ----------------------------------------------------------------------------------
+# Nitrogenrom kernel config
+#
+# ----------------------------------------------------------------------------------
+CONFIG_LOCALVERSION="-NitrogenKernel-Angler-O-1.0"
 # CONFIG_LOCALVERSION_AUTO is not set
 # CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
 CONFIG_FB_MSM_MDSS_HDMI_PANEL=y
