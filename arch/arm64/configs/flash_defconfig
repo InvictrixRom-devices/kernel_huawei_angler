@@ -1,3 +1,21 @@
+###############
+#             #
+# FLASH SETUP #
+#             #
+###############
+
+CONFIG_LOCALVERSION="-Flash-Angler"
+# CONFIG_LOCALVERSION_AUTO is not set
+# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
+CONFIG_FB_MSM_MDSS_HDMI_PANEL=y
+
+
+################
+#              #
+# ANGLER SETUP #
+#              #
+################
+
 CONFIG_AUDIT=y
 CONFIG_NO_HZ=y
 CONFIG_HIGH_RES_TIMERS=y
@@ -19,7 +37,6 @@ CONFIG_NAMESPACES=y
 # CONFIG_UTS_NS is not set
 # CONFIG_PID_NS is not set
 CONFIG_BLK_DEV_INITRD=y
-CONFIG_CC_OPTIMIZE_FOR_SIZE=y
 CONFIG_PANIC_TIMEOUT=5
 CONFIG_KALLSYMS_ALL=y
 # CONFIG_PCI_QUIRKS is not set

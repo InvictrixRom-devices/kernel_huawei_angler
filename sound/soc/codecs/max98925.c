@@ -483,7 +483,7 @@ static int max98925_left_en_put(struct snd_kcontrol *kcontrol,
 			pr_err("%s: modify spk&recv to high failed nret = %d\n",
 				__func__, nret);
 	} else {
-		pr_err("%s: spk&rcver switch gpio had pulled down", __func__);
+		pr_debug("%s: spk&rcver switch gpio had pulled down", __func__);
 	}
 
 	max98925->left_en = sel << M98925_EN_SHIFT;
@@ -814,8 +814,9 @@ static inline int max98925_rate_value(int rate, int clock, u8 *value,
 		}
 	}
 
-	pr_debug("%s: sample rate is %d, returning %d\n", __func__,
-		rate_table[i].rate, *value);
+	if (!ret)
+		pr_debug("%s: sample rate is %d, returning %d\n", __func__,
+			rate_table[i].rate, *value);
 
 	return ret;
 }

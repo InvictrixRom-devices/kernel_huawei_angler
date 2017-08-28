@@ -139,6 +139,7 @@ enum {
 		{ .notifier_call = fn, .priority = pri };	\
 	__register_cpu_notifier(&fn##_nb);			\
 }
+
 extern int register_cpu_notifier(struct notifier_block *nb);
 extern int __register_cpu_notifier(struct notifier_block *nb);
 extern void unregister_cpu_notifier(struct notifier_block *nb);
@@ -165,7 +166,7 @@ static inline void unregister_cpu_notifier(struct notifier_block *nb)
 static inline void __unregister_cpu_notifier(struct notifier_block *nb)
 {
 }
-#endif /* #else #if defined(CONFIG_HOTPLUG_CPU) || !defined(MODULE) */
+#endif
 
 int cpu_up(unsigned int cpu);
 void notify_cpu_starting(unsigned int cpu);

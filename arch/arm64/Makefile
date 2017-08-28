@@ -15,7 +15,17 @@ CPPFLAGS_vmlinux.lds = -DTEXT_OFFSET=$(TEXT_OFFSET)
 OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
 GZFLAGS		:=-9
 
+LIBGCC 		:= $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
+
 KBUILD_DEFCONFIG := defconfig
+
+# Optimize for big.LITTLE configuration
+ARM_ARCH_OPT	:= -mcpu=cortex-a57.cortex-a53+crypto+crc \
+		   -mtune=cortex-a57.cortex-a53
+
+# If for some reason compiling with a toolchain that supports neither mcpu or
+# mtune (in which case, wtf?), don't tune at all (march can break assembly)
+KBUILD_CFLAGS	+= $(call cc-option,$(ARM_ARCH_OPT),)
 
 KBUILD_CFLAGS	+= -mgeneral-regs-only
 KBUILD_CFLAGS	+= -fno-pic
@@ -46,6 +56,7 @@ core-$(CONFIG_XEN)		+= arch/arm64/xen/
 core-$(CONFIG_KVM) += arch/arm64/kvm/
 core-$(CONFIG_CRYPTO) += arch/arm64/crypto/
 libs-y		:= arch/arm64/lib/ $(libs-y)
+libs-y		+= $(LIBGCC)
 
 # Default target when executing plain make
 ifeq ($(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE),y)
