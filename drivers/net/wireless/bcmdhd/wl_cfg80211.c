@@ -2892,7 +2892,7 @@ bcm_cfg80211_add_ibss_if(struct wiphy *wiphy, char *name)
 	/* generate a new MAC address for the IBSS interface */
 	get_primary_mac(cfg, &cfg->ibss_if_addr);
 	cfg->ibss_if_addr.octet[4] ^= 0x40;
-	memset(&aibss_if, sizeof(aibss_if), 0);
+	memset(&aibss_if, 0, sizeof(aibss_if));
 	memcpy(&aibss_if.addr, &cfg->ibss_if_addr, sizeof(aibss_if.addr));
 	aibss_if.chspec = 0;
 	aibss_if.len = sizeof(aibss_if);
@@ -5904,10 +5904,11 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 		if (ieee80211_is_probe_resp(mgmt->frame_control)) {
 			s32 ie_offset =  DOT11_MGMT_HDR_LEN + DOT11_BCN_PRB_FIXED_LEN;
 			s32 ie_len = len - ie_offset;
-			if ((dev == bcmcfg_to_prmry_ndev(cfg)) && cfg->p2p)
+			if ((dev == bcmcfg_to_prmry_ndev(cfg)) && cfg->p2p) {
 				bssidx = wl_to_p2p_bss_bssidx(cfg, P2PAPI_BSSCFG_DEVICE);
 				wl_cfgp2p_set_management_ie(cfg, dev, bssidx,
-				VNDR_IE_PRBRSP_FLAG, (u8 *)(buf + ie_offset), ie_len);
+					VNDR_IE_PRBRSP_FLAG, (u8 *)(buf + ie_offset), ie_len);
+			}
 			cfg80211_mgmt_tx_status(cfgdev, *cookie, buf, len, true, GFP_KERNEL);
 			goto exit;
 		} else if (ieee80211_is_disassoc(mgmt->frame_control) ||
@@ -9397,14 +9398,6 @@ wl_notify_gscan_event(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 	u32 len = ntoh32(e->datalen);
 
 	switch (event) {
-		case WLC_E_PFN_SWC:
-			ptr = dhd_dev_swc_scan_event(ndev, data, &send_evt_bytes);
-			if (send_evt_bytes) {
-				wl_cfgvendor_send_async_event(wiphy, ndev,
-				    GOOGLE_GSCAN_SIGNIFICANT_EVENT, ptr, send_evt_bytes);
-				kfree(ptr);
-			}
-			break;
 		case WLC_E_PFN_BEST_BATCHING:
 			err = dhd_dev_retrieve_batch_scan(ndev);
 			if (err < 0) {
@@ -9452,10 +9445,13 @@ wl_notify_gscan_event(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 				err = -EINVAL;
 			break;
 		case WLC_E_PFN_GSCAN_FULL_RESULT:
-			ptr = dhd_dev_process_full_gscan_result(ndev, data, &send_evt_bytes);
+			ptr =
+			dhd_dev_process_full_gscan_result(ndev, data, len,
+							  &send_evt_bytes);
 			if (ptr) {
 				wl_cfgvendor_send_async_event(wiphy, ndev,
-				    GOOGLE_SCAN_FULL_RESULTS_EVENT, ptr, send_evt_bytes);
+				    GOOGLE_SCAN_FULL_RESULTS_EVENT, ptr,
+				    send_evt_bytes);
 				kfree(ptr);
 			} else
 				err = -ENOMEM;
@@ -9657,8 +9653,14 @@ wl_notify_rx_mgmt_frame(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 	u32 event = ntoh32(e->event_type);
 	u8 *mgmt_frame;
 	u8 bsscfgidx = e->bsscfgidx;
-	u32 mgmt_frame_len = ntoh32(e->datalen) - sizeof(wl_event_rx_frame_data_t);
+	u32 mgmt_frame_len = ntoh32(e->datalen);
 	u16 channel = ((ntoh16(rxframe->channel) & WL_CHANSPEC_CHAN_MASK));
+
+	if (mgmt_frame_len < sizeof(wl_event_rx_frame_data_t)) {
+		WL_ERR(("wrong datalen:%d\n", mgmt_frame_len));
+		return -EINVAL;
+	}
+	mgmt_frame_len -= sizeof(wl_event_rx_frame_data_t);
 
 	memset(&bssid, 0, ETHER_ADDR_LEN);
 
@@ -9781,7 +9783,11 @@ wl_notify_rx_mgmt_frame(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 		WL_DBG((" Event WLC_E_PROBREQ_MSG received\n"));
 		mgmt_frame = (u8 *)(data);
 		mgmt_frame_len = ntoh32(e->datalen);
-
+		if (mgmt_frame_len < DOT11_MGMT_HDR_LEN) {
+			WL_ERR(("WLC_E_PROBREQ_MSG - wrong datalen:%d\n",
+				mgmt_frame_len));
+			return -EINVAL;
+		}
 		prbreq_ie_len = mgmt_frame_len - DOT11_MGMT_HDR_LEN;
 
 		/* Parse prob_req IEs */
@@ -10081,7 +10087,6 @@ static void wl_init_event_handler(struct bcm_cfg80211 *cfg)
 	cfg->evt_handler[WLC_E_PFN_BEST_BATCHING] = wl_notify_gscan_event;
 	cfg->evt_handler[WLC_E_PFN_SCAN_COMPLETE] = wl_notify_gscan_event;
 	cfg->evt_handler[WLC_E_PFN_GSCAN_FULL_RESULT] = wl_notify_gscan_event;
-	cfg->evt_handler[WLC_E_PFN_SWC] = wl_notify_gscan_event;
 	cfg->evt_handler[WLC_E_PFN_BSSID_NET_FOUND] = wl_notify_gscan_event;
 	cfg->evt_handler[WLC_E_PFN_BSSID_NET_LOST] = wl_notify_gscan_event;
 	cfg->evt_handler[WLC_E_PFN_SSID_EXT] = wl_notify_gscan_event;
@@ -10501,6 +10506,13 @@ static s32 wl_escan_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 		WL_INFORM(("WLC_E_STATUS_PARTIAL \n"));
 		if (!escan_result) {
 			WL_ERR(("Invalid escan result (NULL pointer)\n"));
+			goto exit;
+		}
+		if ((dtoh32(escan_result->buflen) > ESCAN_BUF_SIZE) ||
+		    (dtoh32(escan_result->buflen) <
+			sizeof(wl_escan_result_t))) {
+			WL_ERR(("Invalid escan buffer len:%d\n",
+				dtoh32(escan_result->buflen)));
 			goto exit;
 		}
 		if (dtoh16(escan_result->bss_count) != 1) {

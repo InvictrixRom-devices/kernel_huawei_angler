@@ -49,7 +49,7 @@ struct panel_id {
 
 static inline const char *mdss_panel2str(u32 panel)
 {
-	static const char const *names[] = {
+	static const char *names[] = {
 #define PANEL_NAME(n) [n ## _PANEL] = __stringify(n)
 		PANEL_NAME(MIPI_VIDEO),
 		PANEL_NAME(MIPI_CMD),
@@ -195,7 +195,6 @@ struct mdss_intf_recovery {
  *				- MIPI_CMD_PANEL: switch to command mode
  * @MDSS_EVENT_DSI_RESET_WRITE_PTR: Reset the write pointer coordinates on
  *				the panel.
- * @MDSS_EVENT_ENABLE_HBM:	Enable "High Brightness Mode" feature on panel
  */
 enum mdss_intf_events {
 	MDSS_EVENT_RESET = 1,
@@ -223,7 +222,6 @@ enum mdss_intf_events {
 	MDSS_EVENT_DSI_RECONFIG_CMD,
 	MDSS_EVENT_DSI_RESET_WRITE_PTR,
 	MDSS_EVENT_PANEL_UPDATE_DSI_TIMING,
-	MDSS_EVENT_ENABLE_HBM,
 };
 
 struct lcd_panel_info {
@@ -384,8 +382,6 @@ struct mdss_mdp_pp_tear_check {
 	u32 refx100;
 };
 
-struct mdss_livedisplay_ctx;
-
 struct mdss_panel_info {
 	u32 xres;
 	u32 yres;
@@ -461,13 +457,8 @@ struct mdss_panel_info {
 	struct lvds_panel_info lvds;
 	struct edp_panel_info edp;
 
-	struct mdss_livedisplay_ctx *livedisplay;
-
 	/* debugfs structure for the panel */
 	struct mdss_panel_debugfs_info *debugfs_info;
-
-	bool hbm_feature_enabled;
-	bool hbm_state;
 };
 
 struct mdss_panel_data {
